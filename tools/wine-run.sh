@@ -9,12 +9,11 @@ if [ "${1:-}" != --inside ]; then
 fi
 shift
 
-if [ -n "${IME_WINE_BIN:-}" ]; then
-    wine_bin=$IME_WINE_BIN
-else
-    wine_bin="$cache/wine/bin"
+wine_bin=${IME_WINE_BIN:-/usr/bin}
+if [ ! -x "$wine_bin/wine" ] || [ ! -x "$wine_bin/wineserver" ]; then
+    printf '%s\n' 'Wine was not found. Install Wine 11 or later with apt, or set IME_WINE_BIN.' >&2
+    exit 1
 fi
-test -x "$wine_bin/wine"
 
 if [ "${IME_WINE_ONLINE_PROBE:-0}" = 1 ]; then
     set -- --ro-bind-try /run/systemd/resolve /run/systemd/resolve -- "$@"

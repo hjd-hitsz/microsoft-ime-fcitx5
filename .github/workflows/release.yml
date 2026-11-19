@@ -16,6 +16,8 @@ jobs:
   release:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      UBUNTU_RELEASES: '22.04 24.04'
     steps:
       - name: 检出发布标签
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,40 +33,58 @@ jobs:
             exit 1
           fi
 
-      - name: 在 Ubuntu 22.04 amd64 容器中编译和打包
+      - name: 为 Ubuntu 22.04 和 24.04 编译 amd64 安装包
         run: |
-          docker run --rm --platform linux/amd64 \
-            --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
-            ubuntu:22.04 sh -eu -c '
-              apt-get update
-              DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-                ca-certificates curl dpkg-dev g++ g++-mingw-w64-x86-64-posix \
-                libfcitx5core-dev pkg-config xz-utils
-              ./tools/package-deb.sh
-            '
+          version=${GITHUB_REF_NAME#v}
+          package="microsoft-ime-fcitx5_${version}_amd64.deb"
+          for ubuntu in $UBUNTU_RELEASES; do
+            docker run --rm --platform linux/amd64 \
+              --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
+              "ubuntu:$ubuntu" sh -eu -c '
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+                  ca-certificates curl dpkg-dev g++ g++-mingw-w64-x86-64-posix \
+                  libfcitx5core-dev pkg-config xz-utils
+                ./tools/package-deb.sh
+              '
+            artifact="microsoft-ime-fcitx5_${version}_ubuntu${ubuntu}_amd64.deb"
+            (
+              cd dist
+              sha256sum --check "$package.sha256"
+              mv "$package" "$artifact"
+              sha256sum "$artifact" >"$artifact.sha256"
+            )
+          done
 
       - name: 校验发布产物
         working-directory: dist
         run: |
           version=${GITHUB_REF_NAME#v}
-          package="microsoft-ime-fcitx5_${version}_amd64.deb"
-          sha256sum --check "$package.sha256"
-          test "$(dpkg-deb --field "$package" Package)" = microsoft-ime-fcitx5
-          test "$(dpkg-deb --field "$package" Version)" = "$version"
-          test "$(dpkg-deb --field "$package" Architecture)" = amd64
+          for ubuntu in $UBUNTU_RELEASES; do
+            package="microsoft-ime-fcitx5_${version}_ubuntu${ubuntu}_amd64.deb"
+            sha256sum --check "$package.sha256"
+            test "$(dpkg-deb --field "$package" Package)" = microsoft-ime-fcitx5
+            test "$(dpkg-deb --field "$package" Version)" = "$version"
+            test "$(dpkg-deb --field "$package" Architecture)" = amd64
+          done
 
       - name: 发布 GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          package="dist/microsoft-ime-fcitx5_${GITHUB_REF_NAME#v}_amd64.deb"
+          version=${GITHUB_REF_NAME#v}
+          assets=()
+          for ubuntu in $UBUNTU_RELEASES; do
+            package="dist/microsoft-ime-fcitx5_${version}_ubuntu${ubuntu}_amd64.deb"
+            assets+=("$package" "$package.sha256")
+          done
           draft=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft' 2>/dev/null || true)
           if [ "$draft" = true ]; then
-            gh release upload "$GITHUB_REF_NAME" "$package" "$package.sha256" --clobber
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
             gh release edit "$GITHUB_REF_NAME" --draft=false
           else
-            gh release create "$GITHUB_REF_NAME" "$package" "$package.sha256" \
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
               --verify-tag --title "$GITHUB_REF_NAME" \
-              --notes '适用于 Ubuntu 22.04 amd64。安装包由 GitHub Actions 构建，附有 SHA-256 校验文件。'
+              --notes '提供 Ubuntu 22.04 和 24.04 的 amd64 安装包，各附 SHA-256 校验文件。'
           fi

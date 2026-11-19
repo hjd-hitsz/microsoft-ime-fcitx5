@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 if [ "$1" = configure ]; then
+    tools=/usr/lib/microsoft-ime-fcitx5/tools
+    . "$tools/releases.sh"
+    . "$tools/download.sh"
+    engine_files=/var/lib/microsoft-ime-fcitx5
+    install -d -m 0755 "$engine_files"
+    download_verified "$engine_files/$msi_name" "$msi_url" "$msi_digest"
+    chmod 0644 "$engine_files/$msi_name"
+
     socket=microsoft-ime-engine.socket
     deb-systemd-helper --user unmask "$socket" >/dev/null || true
     if deb-systemd-helper --user was-enabled "$socket"; then

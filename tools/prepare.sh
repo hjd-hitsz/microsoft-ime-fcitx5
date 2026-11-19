@@ -8,17 +8,24 @@ umask 077
 mkdir -p "$cache" "$state"
 exec 9>"$state/setup.lock"
 flock 9
-msi=${1:-$cache/$msi_name}
 marker="$state/engine-version"
 if [ "$#" -gt 0 ]; then
+    msi=$1
     verify_digest "$msi" "$msi_digest"
 fi
-sh "$project/tools/prepare-wine.sh"
 if [ -f "$wine_home/prefix/user.reg" ] && [ -f "$marker" ] &&
     [ "$(cat "$marker")" = "$msi_digest" ]; then
     exit
 fi
-if [ "$#" -eq 0 ]; then download_verified "$msi" "$msi_url" "$msi_digest"; fi
+if [ "$#" -eq 0 ]; then
+    if [ "$engine_dir" = "$project" ]; then
+        msi="/var/lib/microsoft-ime-fcitx5/$msi_name"
+        verify_digest "$msi" "$msi_digest"
+    else
+        msi="$cache/$msi_name"
+        download_verified "$msi" "$msi_url" "$msi_digest"
+    fi
+fi
 scratch=$(mktemp -d "$cache/stage.XXXXXX")
 trap 'rm -rf -- "$scratch"' EXIT
 mkdir -p "$scratch/tables" "$scratch/extracted"

@@ -58,6 +58,15 @@ verify_activation() {
     userctl is-active "$service"
 }
 
+verify_installed_dependencies() {
+    wine_version=$(wine --version)
+    wine_version=${wine_version#wine-}
+    test "${wine_version%%.*}" -ge 11
+    . /usr/lib/microsoft-ime-fcitx5/tools/releases.sh
+    runuser -u "$account" -- test -r "/var/lib/$method/$msi_name"
+    test -s "/usr/share/doc/$method/copyright"
+}
+
 verify_purge() {
     apt-get purge -y "$method"
     if dpkg-query -W "$method" >/dev/null 2>&1; then exit 1; fi
@@ -65,6 +74,7 @@ verify_purge() {
     test ! -e "/etc/systemd/user/sockets.target.wants/$socket"
     test ! -e "/etc/systemd/user/$socket"
     test ! -S "$socket_path"
+    test ! -e "/var/lib/$method/$msi_name"
     test -f "$state/wine/prefix/user.reg"
     test -f "$state/test-user-data"
 }
@@ -85,6 +95,7 @@ printf '%s\n' 'Upgrade through APT and verify activation without manual startup'
 install_package "$current"
 test "$(dpkg-query -W -f='${Version}' "$method")" = "$version"
 test -z "$(dpkg --verify "$method")"
+verify_installed_dependencies
 verify_activation
 runuser -u "$account" -- touch "$state/test-user-data"
 
@@ -99,6 +110,7 @@ runuser -u "$account" -- mv "$state" "$state-upgrade"
 printf '%s\n' 'Install the current package with no prior engine state'
 install_package "$current"
 test ! -e "$state"
+verify_installed_dependencies
 verify_activation
 runuser -u "$account" -- touch "$state/test-user-data"
 verify_purge

@@ -1,6 +1,6 @@
 # 微软中文输入法 Fcitx5 贡献指南
 
-本项目通过 Wine 为 Fcitx5 提供微软「中文输入法」1.0.0.17694 的 x64 拼音引擎。Ubuntu 22.04 amd64 是打包验收环境。安装方式见 [README.md](README.md)，已验证的输入行为和实验范围见 [docs/features.md](docs/features.md)。
+本项目通过 Wine 为 Fcitx5 提供微软「中文输入法」1.0.0.17694 的 x64 拼音引擎。为 Ubuntu 22.04 和 24.04 分别构建 amd64 安装包。安装方式见 [README.md](README.md)，已验证的输入行为和实验范围见 [docs/features.md](docs/features.md)。
 
 ## 项目结构与入口
 
@@ -11,14 +11,14 @@
 
 ## 构建与开发
 
-在项目根目录执行。Ubuntu 22.04 amd64 构建机启用 `universe`。构建依赖包括 `g++`、`g++-mingw-w64-x86-64-posix`、`libfcitx5core-dev` 和 `pkg-config`，打包另需 `curl`、`dpkg-dev` 和 `xz-utils`。源码运行使用 Node.js 18 或更新版本，Wine 运行依赖见 `packaging/deb/control`。
+在项目根目录执行。Ubuntu 22.04 amd64 构建机启用 `universe`。构建依赖包括 `g++`、`g++-mingw-w64-x86-64-posix`、`libfcitx5core-dev` 和 `pkg-config`，打包另需 `curl`、`dpkg-dev` 和 `xz-utils`。源码运行使用 Node.js 18 或更新版本，并通过 `apt` 安装 Wine 11 或更新版本。
 
 ```sh
 ./tools/build.sh
 ./tools/package-deb.sh
 ```
 
-`build.sh` 生成 `build/engine-host.exe` 和 `build/fcitx/microsoft-chinese-keyboard.so`。`package-deb.sh` 会重新构建，打包固定版本的 Node.js，并将 `.deb` 文件和 SHA-256 校验文件写入 `dist/`。打包时可通过 `IME_NODE_ARCHIVE` 提供已有的官方 Node.js 归档。桌面开发时可用 `./tools/install.sh` 安装到当前用户并启用 systemd 用户套接字，用 `./tools/uninstall.sh` 移除用户级插件和服务。
+`build.sh` 生成 `build/engine-host.exe` 和 `build/fcitx/microsoft-chinese-keyboard.so`。`package-deb.sh` 会重新构建，打包固定版本的 Node.js，按构建环境生成共享库依赖，并将 `.deb` 文件和 SHA-256 校验文件写入 `dist/`。打包时可通过 `IME_NODE_ARCHIVE` 提供已有的官方 Node.js 归档。桌面开发时可用 `./tools/install.sh` 安装到当前用户并启用 systemd 用户套接字，用 `./tools/uninstall.sh` 移除用户级插件和服务。
 
 延续邻近代码的写法。C++ 使用 C++17 和四空格缩进，构建启用 `-Wall -Wextra -Werror`。Shell 脚本使用 POSIX `sh`，入口脚本使用 `set -eu`。JavaScript 使用原生 `.mjs` 模块、两空格缩进和分号，服务端使用 Node.js 内置模块。桌面与网页的用户可见文案沿用简体中文。
 
@@ -57,12 +57,12 @@ SH
 
 如示例端口已被占用，改用空闲端口。GTK 测试默认用空格选词，也可在期望文本后传入 `xdotool` 按键序列。设置 `IME_TEST_POPUP=1` 时，测试会先确认 X11 候选窗口可见。原版设置测试检查纠错、模糊拼音和候选变化，并核对设置回读。
 
-打包改动使用 [apt 会话测试](tests/deb-apt-session.sh) 验收。在以 systemd 为 PID 1 的临时 Ubuntu 22.04 amd64 容器中，准备 `dbus-user-session`、Fcitx5 GTK 测试依赖、普通测试账户及已运行的 `user@UID.service`。以容器内的 root 运行脚本，依次传入账户名、上一版和当前版的 `.deb` 文件。测试使用 `apt` 首装和升级，核对已登录会话的套接字自动监听、首次连接拉起引擎、候选窗显示和 GTK 上屏，然后检查用户会话重启、清除包文件和保留用户数据。测试账户可预置经校验的 WineHQ 与微软安装文件缓存，以单独检验安装和激活链路。
+打包改动使用 [apt 会话测试](tests/deb-apt-session.sh) 验收。在以 systemd 为 PID 1 的临时 Ubuntu 22.04 amd64 容器中，准备 `dbus-user-session`、Fcitx5 GTK 测试依赖、普通测试账户及已运行的 `user@UID.service`。以容器内的 root 运行脚本，依次传入账户名、上一版和当前版的 `.deb` 文件。测试核对 `apt` 安装的 Wine、微软 MSI 和许可证，并验证首次连接拉起引擎、候选窗显示、GTK 上屏、用户会话重启，以及清除包时保留用户数据。
 
 ## 配置与发布
 
-- 发布时将 `packaging/deb/control` 中的 `Version` 更新并提交，再推送同版本的 `v` 前缀标签，例如 `v0.1.0-3`。[发布工作流](.github/workflows/release.yml) 会核对版本，在 Ubuntu 22.04 amd64 容器中运行 `tools/package-deb.sh`，校验包元数据和 SHA-256，再将 `.deb` 与 `.sha256` 发布到 GitHub Release。
-- `tools/releases.sh` 集中固定微软 MSI、WineHQ 和 Node.js 的版本、下载地址及 SHA-256。首次启动时自动下载并校验 WineHQ 安装包和微软 MSI。`./tools/prepare.sh /path/to/ChineseKeyboard.msi` 可使用已有的官方 MSI，仍会校验摘要。更新微软引擎版本时，重新验证 COM 接口、候选数据格式和上屏行为。
+- 发布时将 `packaging/deb/control` 中的 `Version` 更新并提交，再推送同版本的 `v` 前缀标签。[发布工作流](.github/workflows/release.yml) 会核对版本，分别在 Ubuntu 22.04 和 24.04 amd64 容器中运行 `tools/package-deb.sh`。工作流对两个包核对元数据与 SHA-256，再将带 Ubuntu 版本的 `.deb` 文件及校验文件一并发布到 GitHub Release。
+- `tools/releases.sh` 固定微软 MSI 和 Node.js 的版本、下载地址及 SHA-256。`apt` 安装 `.deb` 时下载并校验微软 MSI，供各用户首次切换输入法时初始化。`./tools/prepare.sh /path/to/ChineseKeyboard.msi` 可使用已有的官方 MSI，仍会校验摘要。更新微软引擎版本时，重新验证 COM 接口、候选数据格式和上屏行为。
 - 用户服务从 `${XDG_CONFIG_HOME:-$HOME/.config}/microsoft-ime-fcitx5/service.env` 读取环境变量。设置页默认监听 `127.0.0.1:17865`，由 `IME_SETTINGS_PORT` 覆盖。`IME_STATE_DIR` 和 `IME_CACHE_DIR` 使用绝对路径，默认分别取 XDG 状态和缓存目录下的 `microsoft-ime-fcitx5/`。`IME_WINE_BIN` 指向包含 `wine` 和 `wineserver` 的目录。手动启动时用 `MS_IME_SOCKET` 指定套接字，插件和测试客户端使用同一路径。
 - 正式服务通过 Bubblewrap 将 Wine 置于独立的网络命名空间。微软引擎及词库由目标机准备，个人设置与学习数据存于用户 Wine 前缀。构建产物留在 `build/` 和 `dist/`，调试日志留在 `logs/`，这些目录均由 `.gitignore` 忽略。
 

@@ -5,6 +5,11 @@ case "$1" in
     purge)
         deb-systemd-helper --user purge microsoft-ime-engine.socket >/dev/null || true
         deb-systemd-helper --user unmask microsoft-ime-engine.socket >/dev/null || true
+        engine_files=/var/lib/microsoft-ime-fcitx5
+        if [ -d "$engine_files" ]; then
+            rm -f -- "$engine_files"/ChineseKeyboard-*.msi
+            rmdir --ignore-fail-on-non-empty "$engine_files"
+        fi
         ;;
 esac
 if [ "$1" = remove ] || [ "$1" = purge ]; then
