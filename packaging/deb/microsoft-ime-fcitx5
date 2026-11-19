@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+runtime=/usr/lib/microsoft-ime-fcitx5
+service=microsoft-ime-engine.service
+socket=microsoft-ime-engine.socket
+
+case "${1:-settings}" in
+    setup)
+        shift
+        if [ "$#" -gt 1 ]; then
+            printf '%s\n' 'Usage: microsoft-ime-fcitx5 setup [MSI]' >&2
+            exit 2
+        fi
+        "$runtime/tools/prepare.sh" "$@"
+        systemctl --user daemon-reload
+        systemctl --user start "$socket"
+        ;;
+    settings)
+        systemctl --user daemon-reload
+        systemctl --user start "$socket" "$service"
+        address="${XDG_RUNTIME_DIR:?}/microsoft-ime-engine.url"
+        while systemctl --user is-active --quiet "$service"; do
+            if [ -f "$address" ]; then
+                url=$(sed -n '/^http:\/\/127\.0\.0\.1:[0-9][0-9]*\/$/p' "$address")
+                if [ -n "$url" ] && curl -fsS --max-time 1 "${url}api/settings" >/dev/null 2>&1; then
+                    exec xdg-open "$url"
+                fi
+            fi
+            sleep 1
+        done
+        journalctl --user -u "$service" -n 20 --no-pager >&2
+        exit 1
+        ;;
+    status)
+        systemctl --user status "$socket" "$service" --no-pager
+        ;;
+    -h|--help)
+        printf '%s\n' 'Usage: microsoft-ime-fcitx5 {setup [MSI]|settings|status}'
+        ;;
+    *)
+        printf '%s\n' 'Usage: microsoft-ime-fcitx5 {setup [MSI]|settings|status}' >&2
+        exit 2
+        ;;
+esac

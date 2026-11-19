@@ -1,0 +1,12 @@
+Package: microsoft-ime-fcitx5
+Version: 0.1.0-3
+Architecture: amd64
+Section: utils
+Priority: optional
+Maintainer: Microsoft IME Fcitx5 Project <microsoft-ime-fcitx5@localhost>
+Depends: fcitx5 (>= 5.0.14), libfcitx5core7, libfcitx5config6, libfcitx5utils2, libc6 (>= 2.35), libstdc++6 (>= 12), libgcc-s1, systemd, dbus-user-session, init-system-helpers (>= 1.62), bubblewrap, xvfb, xauth, libx11-6, libxext6, libxrender1, libxrandr2, libxcomposite1, libxcursor1, libxi6, libxinerama1, libfreetype6, libfontconfig1, msitools, curl, ca-certificates, util-linux, xdg-utils
+Recommends: fcitx5-config-qt, fcitx5-frontend-gtk3, fonts-noto-cjk
+Description: Fcitx5 adapter for the Microsoft Chinese Keyboard engine
+ Runs the independently acquired Microsoft Pinyin engine in an isolated Wine
+ prefix. Supplies a per-user service and a local web interface for Microsoft's
+ engine settings and Fcitx5 display options.

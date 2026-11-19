@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+case "$1" in
+    remove) deb-systemd-helper --user mask microsoft-ime-engine.socket >/dev/null || true ;;
+    purge)
+        deb-systemd-helper --user purge microsoft-ime-engine.socket >/dev/null || true
+        deb-systemd-helper --user unmask microsoft-ime-engine.socket >/dev/null || true
+        ;;
+esac
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+    if [ -d /run/systemd/system ]; then
+        for id in $(systemctl list-units 'user@*.service' --no-legend | sed -n 's/^[[:space:]]*user@\([0-9][0-9]*\)\.service .*/\1/p'); do
+            systemctl --user --machine "$id@" daemon-reload || true
+        done
+    fi
+fi

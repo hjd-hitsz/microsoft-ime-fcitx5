@@ -1,0 +1,70 @@
+name: 发布 Debian 软件包
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: 检出发布标签
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 核对标签与软件包版本
+        run: |
+          version=$(sed -n 's/^Version: //p' packaging/deb/control)
+          dpkg --validate-version "$version"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            printf '发布标签应为 v%s，当前标签为 %s。\n' "$version" "$GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+      - name: 在 Ubuntu 22.04 amd64 容器中编译和打包
+        run: |
+          docker run --rm --platform linux/amd64 \
+            --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
+            ubuntu:22.04 sh -eu -c '
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+                ca-certificates curl dpkg-dev g++ g++-mingw-w64-x86-64-posix \
+                libfcitx5core-dev pkg-config xz-utils
+              ./tools/package-deb.sh
+            '
+
+      - name: 校验发布产物
+        working-directory: dist
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          package="microsoft-ime-fcitx5_${version}_amd64.deb"
+          sha256sum --check "$package.sha256"
+          test "$(dpkg-deb --field "$package" Package)" = microsoft-ime-fcitx5
+          test "$(dpkg-deb --field "$package" Version)" = "$version"
+          test "$(dpkg-deb --field "$package" Architecture)" = amd64
+
+      - name: 发布 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          package="dist/microsoft-ime-fcitx5_${GITHUB_REF_NAME#v}_amd64.deb"
+          draft=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft' 2>/dev/null || true)
+          if [ "$draft" = true ]; then
+            gh release upload "$GITHUB_REF_NAME" "$package" "$package.sha256" --clobber
+            gh release edit "$GITHUB_REF_NAME" --draft=false
+          else
+            gh release create "$GITHUB_REF_NAME" "$package" "$package.sha256" \
+              --verify-tag --title "$GITHUB_REF_NAME" \
+              --notes '适用于 Ubuntu 22.04 amd64。安装包由 GitHub Actions 构建，附有 SHA-256 校验文件。'
+          fi

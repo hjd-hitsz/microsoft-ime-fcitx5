@@ -1,0 +1,13 @@
+[Unit]
+Description=Microsoft Chinese Keyboard engine for Fcitx5
+Requires=microsoft-ime-engine.socket
+After=microsoft-ime-engine.socket
+
+[Service]
+Type=simple
+ExecStartPre=/bin/rm -f %t/microsoft-ime-engine.url
+ExecStart=/usr/lib/microsoft-ime-fcitx5/tools/start.sh
+ExecStopPost=/bin/rm -f %t/microsoft-ime-engine.url
+EnvironmentFile=-%E/microsoft-ime-fcitx5/service.env
+KillMode=mixed
+TimeoutStopSec=6

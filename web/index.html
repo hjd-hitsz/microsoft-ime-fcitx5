@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>微软中文输入法设置</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="context">Fcitx5 输入法</p>
+      <h1>微软中文输入法设置</h1>
+    </header>
+    <form>
+      <section aria-labelledby="native">
+        <h2 id="native">微软引擎设置</h2>
+        <label class="row">
+          <span>自动纠错<span class="detail">使用微软引擎纠正拼写输入，例如 nihoa → 你好。</span></span>
+          <input type="checkbox" name="AutoCorrection">
+        </label>
+        <label class="row">
+          <span>模糊拼音</span>
+          <input type="checkbox" name="FuzzyEnabled">
+        </label>
+        <fieldset id="fuzzy-rules">
+          <legend>模糊音规则</legend>
+          <label><input type="checkbox" data-fuzzy="1"> z / zh</label>
+          <label><input type="checkbox" data-fuzzy="2"> c / ch</label>
+          <label><input type="checkbox" data-fuzzy="4"> s / sh</label>
+          <label><input type="checkbox" data-fuzzy="8"> l / n</label>
+          <label><input type="checkbox" data-fuzzy="16"> l / r</label>
+          <label><input type="checkbox" data-fuzzy="32"> f / h</label>
+          <label><input type="checkbox" data-fuzzy="128"> an / ang</label>
+          <label><input type="checkbox" data-fuzzy="512"> in / ing</label>
+        </fieldset>
+        <label class="row">
+          <span>本地自学习<span class="detail">根据上屏选词更新候选排序。学习记录保存在本机。</span></span>
+          <input type="checkbox" name="SelfLearning">
+        </label>
+        <div class="row">
+          <span>微软云候选</span>
+          <span class="status" id="cloud-state">正在读取</span>
+        </div>
+      </section>
+      <section aria-labelledby="composition">
+        <h2 id="composition">Fcitx5 显示与快捷键</h2>
+        <label class="row" for="PageSize">
+          <span>每页候选词个数</span>
+          <select id="PageSize" name="PageSize">
+            <option>3</option><option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>单按 Shift 切换中英文<span class="detail">组合快捷键仍交给应用处理。</span></span>
+          <input type="checkbox" name="ShiftSwitch">
+        </label>
+        <label class="row">
+          <span>默认使用中文标点<span class="detail">Ctrl + . 可临时切换。</span></span>
+          <input type="checkbox" name="ChinesePunctuation">
+        </label>
+        <label class="row">
+          <span>默认启用全角字符<span class="detail">Shift + 空格可临时切换。</span></span>
+          <input type="checkbox" name="FullWidth">
+        </label>
+      </section>
+      <footer>
+        <span id="result" role="status" aria-live="polite"></span>
+        <button type="submit" disabled>保存设置</button>
+      </footer>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Microsoft Chinese Keyboard Settings
+Name[zh_CN]=微软中文输入法设置
+Comment[zh_CN]=准备微软拼音引擎并打开本机设置
+Exec=microsoft-ime-fcitx5 settings
+Icon=preferences-desktop-keyboard
+Terminal=true
+Categories=Settings;

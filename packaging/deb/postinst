@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+if [ "$1" = configure ]; then
+    socket=microsoft-ime-engine.socket
+    deb-systemd-helper --user unmask "$socket" >/dev/null || true
+    if deb-systemd-helper --user was-enabled "$socket"; then
+        deb-systemd-helper --user enable "$socket" >/dev/null || true
+    else
+        deb-systemd-helper --user update-state "$socket" >/dev/null || true
+    fi
+    if [ -d /run/systemd/system ]; then
+        for id in $(systemctl list-units 'user@*.service' --no-legend | sed -n 's/^[[:space:]]*user@\([0-9][0-9]*\)\.service .*/\1/p'); do
+            systemctl --user --machine "$id@" daemon-reload || true
+        done
+        deb-systemd-invoke --user start "$socket" || true
+    fi
+fi
