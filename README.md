@@ -18,7 +18,7 @@ sudo apt update && sudo apt install fcitx5 fcitx5-config-qt fcitx5-frontend-gtk3
 
 ## 安装软件包
 
-从 [GitHub Releases](https://github.com/hjd-hitsz/microsoft-ime-fcitx5/releases/latest) 下载适用于 Ubuntu 22.04 amd64 的 `.deb` 安装包。安装包由 GitHub Actions 构建，下载页提供对应的 `.sha256` 校验文件。在文件所在目录打开终端，把命令中的文件名换成下载的文件名。`apt` 会一并安装其余依赖。
+从 [GitHub Releases](https://github.com/hjd-hitsz/microsoft-ime-fcitx5/releases/latest) 下载 `.deb` 安装包。`apt` 会一并安装其余依赖。
 
 ```sh
 sudo apt install ./microsoft-ime-fcitx5_0.1.0-3_amd64.deb
@@ -26,7 +26,7 @@ sudo apt install ./microsoft-ime-fcitx5_0.1.0-3_amd64.deb
 
 ## 从源码安装
 
-完成上面的依赖安装后，解压源码，在源码目录打开终端。保持联网，运行以下命令安装构建工具并生成安装包。
+完成上面的依赖安装后，解压源码，在源码目录打开终端。运行以下命令安装构建工具并生成安装包。
 
 ```sh
 sudo apt install g++ g++-mingw-w64-x86-64-posix libfcitx5core-dev pkg-config \
