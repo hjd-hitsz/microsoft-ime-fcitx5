@@ -37,6 +37,7 @@ jobs:
         run: |
           version=${GITHUB_REF_NAME#v}
           package="microsoft-ime-fcitx5_${version}_amd64.deb"
+          mkdir -p dist
           for ubuntu in $UBUNTU_RELEASES; do
             docker run --rm --platform linux/amd64 \
               --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
