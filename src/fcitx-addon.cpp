@@ -109,7 +109,12 @@ private:
 
 class MicrosoftEngine : public fcitx::InputMethodEngine {
 public:
-    explicit MicrosoftEngine(fcitx::Instance *instance) : instance_(instance) { reloadConfig(); }
+    explicit MicrosoftEngine(fcitx::Instance *instance) : instance_(instance) {
+        reloadConfig();
+        shiftWatcher_ = instance_->watchEvent(
+            fcitx::EventType::InputContextKeyEvent, fcitx::EventWatcherPhase::PreInputMethod,
+            [this](fcitx::Event &event) { trackShiftTap(static_cast<fcitx::KeyEvent &>(event)); });
+    }
     ~MicrosoftEngine() override { closeSocket(); }
 
     const fcitx::Configuration *getConfig() const override { return &config_; }
@@ -141,17 +146,15 @@ public:
             detach();
             return;
         }
-        unsigned key = windowsKey(event.key(), english_);
-        const auto symbol = event.rawKey().sym();
-        if (*config_.shiftSwitch && (symbol == FcitxKey_Shift_L || symbol == FcitxKey_Shift_R)) {
-            if (!event.isRelease()) {
-                shiftTap_ = event.rawKey().hasModifier() ? FcitxKey_None : symbol;
-                return;
-            }
-            key = shiftTap_ == symbol ? ime::ToggleLanguage : 0;
-            shiftTap_ = FcitxKey_None;
-        } else if (!event.isRelease()) {
-            shiftTap_ = FcitxKey_None;
+        auto inputKey = event.key();
+        if (!english_ && active_.get() == context && context->inputPanel().candidateList()) {
+            if (inputKey.check(FcitxKey_bracketleft)) inputKey = fcitx::Key(FcitxKey_Page_Up);
+            else if (inputKey.check(FcitxKey_bracketright)) inputKey = fcitx::Key(FcitxKey_Page_Down);
+        }
+        unsigned key = windowsKey(inputKey, english_);
+        if (event.isRelease() && event.rawKey().sym() == shiftTap_ && shiftContext_.get() == context) {
+            shiftContext_.unwatch();
+            key = ime::ToggleLanguage;
         }
         if (!key) return;
         if (active_.get() != context) {
@@ -165,11 +168,29 @@ public:
     }
 
     void reset(const fcitx::InputMethodEntry &, fcitx::InputContextEvent &event) override {
+        if (shiftContext_.get() == event.inputContext()) shiftContext_.unwatch();
         if (active_.get() == event.inputContext()) detach();
     }
 
 private:
+    void trackShiftTap(fcitx::KeyEvent &event) {
+        if (event.isRelease()) return;
+        shiftContext_.unwatch();
+        const auto &key = event.rawKey();
+        const auto symbol = key.sym();
+        auto *context = event.inputContext();
+        if (!*config_.shiftSwitch || (symbol != FcitxKey_Shift_L && symbol != FcitxKey_Shift_R) ||
+            key.hasModifier() || context->capabilityFlags().testAny(fcitx::CapabilityFlag::PasswordOrSensitive) ||
+            instance_->inputMethodEngine(context) != this) return;
+
+        shiftTap_ = symbol;
+        shiftContext_ = context->watch();
+        // Pass the modifier to the application and bypass the global trigger.
+        event.filter();
+    }
+
     void detach() {
+        shiftContext_.unwatch();
         auto *context = active_.get();
         active_.unwatch();
         if (connected_) exchange('R', {});
@@ -305,6 +326,8 @@ private:
 
     fcitx::Instance *instance_;
     InputMethodConfig config_;
+    std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>> shiftWatcher_;
+    fcitx::TrackableObjectReference<fcitx::InputContext> shiftContext_;
     fcitx::KeySym shiftTap_ = FcitxKey_None;
     bool english_ = false;
     fcitx::TrackableObjectReference<fcitx::InputContext> active_;

@@ -48,6 +48,9 @@ fi
 if [ -n "${IME_TEST_OPTIONS:-}" ]; then
     printf '%b\n' "$IME_TEST_OPTIONS" >"$XDG_CONFIG_HOME/fcitx5/conf/$method.conf"
 fi
+if [ -n "${IME_TEST_GLOBAL_CONFIG:-}" ]; then
+    printf '%b\n' "$IME_TEST_GLOBAL_CONFIG" >"$XDG_CONFIG_HOME/fcitx5/config"
+fi
 cat >"$XDG_CONFIG_HOME/fcitx5/profile" <<PROFILE
 [Groups/0]
 Name=Default

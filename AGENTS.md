@@ -43,6 +43,10 @@ trap '
 export IME_STATE_DIR="$scratch/gtk-state" IME_SETTINGS_PORT=17866
 ./tools/prepare.sh
 ./tests/fcitx-session.sh zwsrf 中文输入法
+IME_TEST_GLOBAL_CONFIG='[Hotkey]\nAltTriggerKeys=\n[Hotkey/TriggerKeys]\n0=Control+space\n1=Shift_L' \
+    ./tests/fcitx-session.sh nihao nihao你好 Shift_L Shift_L n i h a o space
+IME_TEST_OPTIONS='PageSize=7' ./tests/fcitx-session.sh shi 是 bracketright bracketleft 1
+IME_TEST_OPTIONS='PageSize=7' ./tests/fcitx-session.sh shi 石 bracketright 1
 
 export IME_STATE_DIR="$scratch/settings-state" IME_SETTINGS_PORT=17867
 export XDG_CONFIG_HOME="$scratch/config" XDG_RUNTIME_DIR="$scratch/runtime"
@@ -55,7 +59,7 @@ node tests/native-settings.mjs
 SH
 ```
 
-如示例端口已被占用，改用空闲端口。GTK 测试默认用空格选词，也可在期望文本后传入 `xdotool` 按键序列。设置 `IME_TEST_POPUP=1` 时，测试会先确认 X11 候选窗口可见。原版设置测试检查纠错、模糊拼音和候选变化，并核对设置回读。
+如示例端口已被占用，改用空闲端口。GTK 测试默认用空格选词，也可在期望文本后传入 `xdotool` 按键序列。`IME_TEST_GLOBAL_CONFIG` 写入测试会话的 Fcitx5 全局配置，可复现全局快捷键与插件快捷键冲突。设置 `IME_TEST_POPUP=1` 时，测试会先确认 X11 候选窗口可见。原版设置测试检查纠错、模糊拼音和候选变化，并核对设置回读。
 
 打包改动使用 [apt 会话测试](tests/deb-apt-session.sh) 验收。在以 systemd 为 PID 1 的临时 Ubuntu 22.04 amd64 容器中，准备 `dbus-user-session`、Fcitx5 GTK 测试依赖、普通测试账户及已运行的 `user@UID.service`。以容器内的 root 运行脚本，依次传入账户名、上一版和当前版的 `.deb` 文件。测试核对 `apt` 安装的 Wine、微软 MSI 和许可证，并验证首次连接拉起引擎、候选窗显示、GTK 上屏、用户会话重启，以及清除包时保留用户数据。
 
