@@ -65,7 +65,9 @@ SH
 
 ## 配置与发布
 
-- 发布时将 `packaging/deb/control` 中的 `Version` 更新并提交，再推送同版本的 `v` 前缀标签。[发布工作流](.github/workflows/release.yml) 会核对版本，分别在 Ubuntu 22.04 和 24.04 amd64 容器中运行 `tools/package-deb.sh`。工作流对两个包核对元数据与 SHA-256，再将带 Ubuntu 版本的 `.deb` 文件及校验文件一并发布到 GitHub Release。
+- 每次提交用户可感知的功能、修复或安装变化时，在 [CHANGELOG.md](CHANGELOG.md) 的「未发布」段落下添加以 `- ` 开头的条目，说明用户能观察到的变化。
+- [自动发布工作流](.github/workflows/auto-release.yml) 每周日北京时间 12:16 检查 `main`。最新正式版之后有新提交且「未发布」有条目时，自动递增补丁版本，归档变更日志并推送版本提交及标签。手动运行自动发布工作流可预览结果。
+- 手动发布时同步更新 `packaging/deb/control` 的 `Version` 并把待发布条目归档到变更日志的 `v` 版本标题下，再提交并推送同版本标签。[发布工作流](.github/workflows/release.yml) 核对版本，在 Ubuntu 22.04 和 24.04 amd64 容器中构建并校验安装包，读取对应的变更日志作为 GitHub Release 说明。
 - `tools/releases.sh` 固定微软 MSI 和 Node.js 的版本、下载地址及 SHA-256。`apt` 安装 `.deb` 时下载并校验微软 MSI，供各用户首次切换输入法时初始化。`./tools/prepare.sh /path/to/ChineseKeyboard.msi` 可使用已有的官方 MSI，仍会校验摘要。更新微软引擎版本时，重新验证 COM 接口、候选数据格式和上屏行为。
 - 用户服务从 `${XDG_CONFIG_HOME:-$HOME/.config}/microsoft-ime-fcitx5/service.env` 读取环境变量。设置页默认监听 `127.0.0.1:17865`，由 `IME_SETTINGS_PORT` 覆盖。`IME_STATE_DIR` 和 `IME_CACHE_DIR` 使用绝对路径，默认分别取 XDG 状态和缓存目录下的 `microsoft-ime-fcitx5/`。`IME_WINE_BIN` 指向包含 `wine` 和 `wineserver` 的目录。手动启动时用 `MS_IME_SOCKET` 指定套接字，插件和测试客户端使用同一路径。
 - 正式服务通过 Bubblewrap 将 Wine 置于独立的网络命名空间。微软引擎及词库由目标机准备，个人设置与学习数据存于用户 Wine 前缀。构建产物留在 `build/` 和 `dist/`，调试日志留在 `logs/`，这些目录均由 `.gitignore` 忽略。

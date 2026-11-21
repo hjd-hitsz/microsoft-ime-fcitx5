@@ -1,0 +1,34 @@
+name: 每周检查补丁发布
+
+on:
+  schedule:
+    - cron: '16 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: 检出主分支和发布标签
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: ${{ github.event_name == 'schedule' }}
+
+      - name: 检查补丁版本并触发发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREVIEW: ${{ github.event_name == 'workflow_dispatch' }}
+        run: sh .github/scripts/auto-release.sh
