@@ -28,7 +28,7 @@ sudo apt update && sudo apt install fcitx5 fcitx5-config-qt fcitx5-frontend-gtk3
 从 [GitHub Releases](https://github.com/hjd-hitsz/microsoft-ime-fcitx5/releases/latest) 下载 `.deb` 安装包。根据系统版本选择文件名中带 `ubuntu22.04` 或 `ubuntu24.04` 的包，在文件所在目录运行以下命令，把示例文件名换成你下载的文件名。安装期间保持联网，安装程序会从微软下载输入法文件。
 
 ```sh
-sudo apt install ./microsoft-ime-fcitx5_0.1.1_ubuntu24.04_amd64.deb
+sudo apt install ./microsoft-ime-fcitx5_0.1.2_ubuntu24.04_amd64.deb
 ```
 
 ## 从源码安装
@@ -44,7 +44,7 @@ sudo apt install g++ g++-mingw-w64-x86-64-posix libfcitx5core-dev pkg-config \
 
 ```sh
 cd dist
-sudo apt install ./microsoft-ime-fcitx5_0.1.1_amd64.deb
+sudo apt install ./microsoft-ime-fcitx5_0.1.2_amd64.deb
 ```
 
 ## 启用输入法
